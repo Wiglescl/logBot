@@ -17,20 +17,20 @@ const LOG_CHANNEL_ID = '1364913678499184692';
 
 // Function to get Moscow time
 function getMoscowTime() {
-    const date = new Date();
-    // Convert to Moscow time (UTC+3)
-    date.setHours(date.getHours() + 3);
-    return date.toLocaleString('ru-RU', { 
+    return new Date().toLocaleString('ru-RU', { 
         weekday: 'long', 
         hour: '2-digit', 
         minute: '2-digit',
-        timeZone: 'Europe/Moscow'
-    });
+        timeZone: 'Europe/Moscow',
+        hour12: false
+    }) + ' (МСК)';
 }
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
     console.log(`Бот ${client.user.tag} готов к работе!`);
+    // Log current Moscow time
+    console.log(`Текущее время МСК: ${getMoscowTime()}`);
 });
 
 // Handle voice state updates
@@ -57,7 +57,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 inline: false
             })
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
+                text: `ID участника: ${member.id} • ${currentTime}`
             });
         await logChannel.send({ embeds: [embed] });
     }
@@ -70,7 +70,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
             })
             .setDescription(`🔴 **${oldState.channel.name}**`)
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
+                text: `ID участника: ${member.id} • ${currentTime}`
             });
         await logChannel.send({ embeds: [embed] });
     }
@@ -94,7 +94,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 }
             )
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
+                text: `ID участника: ${member.id} • ${currentTime}`
             });
         await logChannel.send({ embeds: [embed] });
     }
@@ -102,7 +102,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
 
 // Simple web server
 app.get('/', (req, res) => {
-    res.send('Discord Bot is running!');
+    res.send('Discord Bot is running! Current Moscow time: ' + getMoscowTime());
 });
 
 // Start the web server
