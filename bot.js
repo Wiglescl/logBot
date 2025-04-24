@@ -24,8 +24,20 @@ function getMoscowTime() {
         timeZone: 'Europe/Moscow',
         hour12: false
     });
-    return moscowTime + ' (МСК)';
+    return moscowTime ;
 }
+
+// Error handling and automatic reconnection
+client.on('error', error => {
+    console.error('Discord client error:', error);
+    client.destroy();
+    client.login('MTA5ODY0MTIxNTE3MzQ0NzgzMw.GoXfm-.pS0Gnr-RzrN4sbaGnofDiAJbh07e0JPpQ82VM8');
+});
+
+client.on('disconnect', () => {
+    console.log('Bot disconnected! Attempting to reconnect...');
+    client.login('MTA5ODY0MTIxNTE3MzQ0NzgzMw.GoXfm-.pS0Gnr-RzrN4sbaGnofDiAJbh07e0JPpQ82VM8');
+});
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
@@ -34,91 +46,121 @@ client.once('ready', () => {
 });
 
 // Prevent duplicate event handling
-const recentEvents = new Set();
-const EVENT_TIMEOUT = 2000; // 2 seconds
+const recentEvents = new Map();
+const EVENT_TIMEOUT = 5000; // 5 seconds
 
 // Handle voice state updates
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
 
-    // Create unique event identifier
-    const eventId = `${newState.member.id}-${Date.now()}`;
-    if (recentEvents.has(eventId)) return;
-    recentEvents.add(eventId);
+    const member = newState.member;
+    
+    // Create a unique event identifier that includes channel information
+    const eventId = `${member.id}-${oldState.channelId || 'none'}-${newState.channelId || 'none'}`;
+    const now = Date.now();
+    
+    // Check if this is a duplicate event
+    const lastEventTime = recentEvents.get(eventId);
+    if (lastEventTime && (now - lastEventTime) < EVENT_TIMEOUT) {
+        return; // Skip duplicate event
+    }
+    
+    // Update the last event time
+    recentEvents.set(eventId, now);
+    
+    // Clean up old events
     setTimeout(() => recentEvents.delete(eventId), EVENT_TIMEOUT);
 
-    const member = newState.member;
     const currentTime = getMoscowTime();
-
     const embed = new EmbedBuilder();
 
-    // User joined a voice channel
-    if (!oldState.channel && newState.channel) {
-        embed.setColor('#FF0000')
-            .setAuthor({
-                name: `${member.user.tag} зашел в голосовой канал`,
-                iconURL: member.user.displayAvatarURL()
-            })
-            .setDescription(`Канал: **${newState.channel.name}**`)
-            .addFields({
-                name: 'Перешел в голосовой канал:',
-                value: `🔴 **${newState.channel.name}**`,
-                inline: false
-            })
-            .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
-            });
-        await logChannel.send({ embeds: [embed] });
-    }
-    // User left a voice channel
-    else if (oldState.channel && !newState.channel) {
-        embed.setColor('#99AAb5')
-            .setAuthor({
-                name: `${member.user.tag} покинул голосовой канал`,
-                iconURL: member.user.displayAvatarURL()
-            })
-            .setDescription(`🔴 **${oldState.channel.name}**`)
-            .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
-            });
-        await logChannel.send({ embeds: [embed] });
-    }
-    // User moved from one voice channel to another
-    else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
-        embed.setColor('#FF0000')
-            .setAuthor({
-                name: `${member.user.tag} перешел в другой голосовой канал`,
-                iconURL: member.user.displayAvatarURL()
-            })
-            .addFields(
-                {
-                    name: 'Предыдущий канал:',
-                    value: `🔴 **${oldState.channel.name}**`,
-                    inline: true
-                },
-                {
-                    name: 'Новый канал:',
+    try {
+        // User joined a voice channel
+        if (!oldState.channel && newState.channel) {
+            embed.setColor('#FF0000')
+                .setAuthor({
+                    name: `${member.user.tag} зашел в голосовой канал`,
+                    iconURL: member.user.displayAvatarURL()
+                })
+                .setDescription(`Канал: **${newState.channel.name}**`)
+                .addFields({
+                    name: 'Перешел в голосовой канал:',
                     value: `🔴 **${newState.channel.name}**`,
-                    inline: true
-                }
-            )
-            .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
-            });
-        await logChannel.send({ embeds: [embed] });
+                    inline: false
+                })
+                .setFooter({
+                    text: `ID участника: ${member.id} • ${currentTime}`
+                });
+            await logChannel.send({ embeds: [embed] });
+        }
+        // User left a voice channel
+        else if (oldState.channel && !newState.channel) {
+            embed.setColor('#99AAb5')
+                .setAuthor({
+                    name: `${member.user.tag} покинул голосовой канал`,
+                    iconURL: member.user.displayAvatarURL()
+                })
+                .setDescription(`🔴 **${oldState.channel.name}**`)
+                .setFooter({
+                    text: `ID участника: ${member.id} • ${currentTime}`
+                });
+            await logChannel.send({ embeds: [embed] });
+        }
+        // User moved from one voice channel to another
+        else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
+            embed.setColor('#FF0000')
+                .setAuthor({
+                    name: `${member.user.tag} перешел в другой голосовой канал`,
+                    iconURL: member.user.displayAvatarURL()
+                })
+                .addFields(
+                    {
+                        name: 'Предыдущий канал:',
+                        value: `🔴 **${oldState.channel.name}**`,
+                        inline: true
+                    },
+                    {
+                        name: 'Новый канал:',
+                        value: `🔴 **${newState.channel.name}**`,
+                        inline: true
+                    }
+                )
+                .setFooter({
+                    text: `ID участника: ${member.id} • ${currentTime}`
+                });
+            await logChannel.send({ embeds: [embed] });
+        }
+    } catch (error) {
+        console.error('Error in voice state update:', error);
     }
 });
 
-// Simple web server
-app.get('/', (req, res) => {
-    res.send('Discord Bot is running! Current Moscow time: ' + getMoscowTime());
-});
+// Keep the web server alive
+let isAlive = true;
+setInterval(() => {
+    if (!isAlive) {
+        console.log('Web server died, restarting...');
+        startWebServer();
+    }
+}, 60000);
 
-// Start the web server
-app.listen(port, () => {
-    console.log(`Web server is running on port ${port}`);
-});
+function startWebServer() {
+    try {
+        app.get('/', (req, res) => {
+            res.send('Discord Bot is running! Current Moscow time: ' + getMoscowTime());
+        });
 
-// Log in to Discord with your client's token
+        app.listen(port, () => {
+            console.log(`Web server is running on port ${port}`);
+            isAlive = true;
+        });
+    } catch (error) {
+        console.error('Web server error:', error);
+        isAlive = false;
+    }
+}
+
+startWebServer();
+
 client.login('MTA5ODY0MTIxNTE3MzQ0NzgzMw.GoXfm-.pS0Gnr-RzrN4sbaGnofDiAJbh07e0JPpQ82VM8');
