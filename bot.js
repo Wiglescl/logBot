@@ -1,6 +1,53 @@
+const { Client, GatewayIntentBits, Events, EmbedBuilder } = require('discord.js');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Create a new client instance
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates
+    ]
+});
+
+// ID of the text channel where logs will be sent
+const LOG_CHANNEL_ID = '1364913678499184692';
+
+// Function to get Moscow time
+function getMoscowTime() {
+    const moscowTime = new Date().toLocaleString('ru-RU', { 
+        weekday: 'long', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow',
+        hour12: false
+    });
+    return moscowTime;
+}
+
 // Map to store recent events for deduplication
 const recentEvents = new Map();
-const EVENT_TIMEOUT = 10000; // Increase to 10 seconds to catch more duplicates
+const EVENT_TIMEOUT = 10000; // 10 seconds to catch more duplicates
+
+// Error handling and automatic reconnection
+client.on('error', error => {
+    console.error('Discord client error:', error);
+    client.destroy();
+    client.login(process.env.DISCORD_TOKEN); // Use environment variable for token
+});
+
+client.on('disconnect', () => {
+    console.log('Bot disconnected! Attempting to reconnect...');
+    client.login(process.env.DISCORD_TOKEN); // Use environment variable for token
+});
+
+// When the client is ready, run this code (only once)
+client.once('ready', () => {
+    console.log(`Бот ${client.user.tag} готов к работе!`);
+    console.log(`Текущее время МСК: ${getMoscowTime()}`);
+});
 
 // Handle voice state updates
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
@@ -90,3 +137,33 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
         console.error('Error in voice state update:', error);
     }
 });
+
+// Keep the web server alive
+let isAlive = true;
+setInterval(() => {
+    if (!isAlive) {
+        console.log('Web server died, restarting...');
+        startWebServer();
+    }
+}, 60000);
+
+function startWebServer() {
+    try {
+        app.get('/', (req, res) => {
+            res.send('Discord Bot is running! Current Moscow time: ' + getMoscowTime());
+        });
+
+        app.listen(port, () => {
+            console.log(`Web server is running on port ${port}`);
+            isAlive = true;
+        });
+    } catch (error) {
+        console.error('Web server error:', error);
+        isAlive = false;
+    }
+}
+
+startWebServer();
+
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN); // Use environment variable for token
