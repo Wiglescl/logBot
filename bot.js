@@ -15,6 +15,19 @@ const client = new Client({
 // ID of the text channel where logs will be sent
 const LOG_CHANNEL_ID = '1364913678499184692';
 
+// Function to get Moscow time
+function getMoscowTime() {
+    const date = new Date();
+    // Convert to Moscow time (UTC+3)
+    date.setHours(date.getHours() + 3);
+    return date.toLocaleString('ru-RU', { 
+        weekday: 'long', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'Europe/Moscow'
+    });
+}
+
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
     console.log(`Бот ${client.user.tag} готов к работе!`);
@@ -26,7 +39,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     if (!logChannel) return;
 
     const member = newState.member;
-    const currentTime = new Date().toLocaleString('ru-RU', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+    const currentTime = getMoscowTime();
 
     const embed = new EmbedBuilder();
 
@@ -44,7 +57,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 inline: false
             })
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
+                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
             });
         await logChannel.send({ embeds: [embed] });
     }
@@ -57,7 +70,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
             })
             .setDescription(`🔴 **${oldState.channel.name}**`)
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
+                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
             });
         await logChannel.send({ embeds: [embed] });
     }
@@ -81,7 +94,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 }
             )
             .setFooter({
-                text: `ID участника: ${member.id} • ${currentTime}`
+                text: `ID участника: ${member.id} • ${currentTime} (МСК)`
             });
         await logChannel.send({ embeds: [embed] });
     }
