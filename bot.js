@@ -24,7 +24,7 @@ function getMoscowTime() {
         timeZone: 'Europe/Moscow',
         hour12: false
     });
-    return moscowTime ;
+    return moscowTime;
 }
 
 // Error handling and automatic reconnection
@@ -55,28 +55,29 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     if (!logChannel) return;
 
     const member = newState.member;
-    
-    // Create a unique event identifier that includes channel information
+    if (!member) return; // Дополнительная проверка на наличие участника
+
+    // Создаем уникальный идентификатор события с учетом времени
     const eventId = `${member.id}-${oldState.channelId || 'none'}-${newState.channelId || 'none'}`;
     const now = Date.now();
-    
-    // Check if this is a duplicate event
+
+    // Проверяем, не является ли событие дубликатом
     const lastEventTime = recentEvents.get(eventId);
     if (lastEventTime && (now - lastEventTime) < EVENT_TIMEOUT) {
-        return; // Skip duplicate event
+        return; // Пропускаем дубликат
     }
-    
-    // Update the last event time
+
+    // Обновляем время последнего события
     recentEvents.set(eventId, now);
-    
-    // Clean up old events
+
+    // Очищаем старые события
     setTimeout(() => recentEvents.delete(eventId), EVENT_TIMEOUT);
 
     const currentTime = getMoscowTime();
     const embed = new EmbedBuilder();
 
     try {
-        // User joined a voice channel
+        // Пользователь зашел в голосовой канал
         if (!oldState.channel && newState.channel) {
             embed.setColor('#FF0000')
                 .setAuthor({
@@ -94,7 +95,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 });
             await logChannel.send({ embeds: [embed] });
         }
-        // User left a voice channel
+        // Пользователь покинул голосовой канал
         else if (oldState.channel && !newState.channel) {
             embed.setColor('#99AAb5')
                 .setAuthor({
@@ -107,7 +108,7 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
                 });
             await logChannel.send({ embeds: [embed] });
         }
-        // User moved from one voice channel to another
+        // Пользователь перешел из одного канала в другой
         else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
             embed.setColor('#FF0000')
                 .setAuthor({
