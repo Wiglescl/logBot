@@ -1,4 +1,7 @@
 const { Client, GatewayIntentBits, Events, EmbedBuilder } = require('discord.js');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
 // Create a new client instance
 const client = new Client({
@@ -82,6 +85,16 @@ client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
             });
         await logChannel.send({ embeds: [embed] });
     }
+});
+
+// Simple web server
+app.get('/', (req, res) => {
+    res.send('Discord Bot is running!');
+});
+
+// Start the web server
+app.listen(port, () => {
+    console.log(`Web server is running on port ${port}`);
 });
 
 // Log in to Discord with your client's token
