@@ -13,7 +13,7 @@ const client = new Client({
 });
 
 // ID of the text channel where logs will be sent
-const LOG_CHANNEL_ID = '1364913678499184692';
+const LOG_CHANNEL_ID = '1364912337965813850';
 
 // Function to get Moscow time
 function getMoscowTime() {
