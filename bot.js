@@ -17,26 +17,36 @@ const LOG_CHANNEL_ID = '1364913678499184692';
 
 // Function to get Moscow time
 function getMoscowTime() {
-    return new Date().toLocaleString('ru-RU', { 
+    const moscowTime = new Date().toLocaleString('ru-RU', { 
         weekday: 'long', 
         hour: '2-digit', 
         minute: '2-digit',
         timeZone: 'Europe/Moscow',
         hour12: false
-    }) + ' (МСК)';
+    });
+    return moscowTime + ' (МСК)';
 }
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
     console.log(`Бот ${client.user.tag} готов к работе!`);
-    // Log current Moscow time
     console.log(`Текущее время МСК: ${getMoscowTime()}`);
 });
+
+// Prevent duplicate event handling
+const recentEvents = new Set();
+const EVENT_TIMEOUT = 2000; // 2 seconds
 
 // Handle voice state updates
 client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
     if (!logChannel) return;
+
+    // Create unique event identifier
+    const eventId = `${newState.member.id}-${Date.now()}`;
+    if (recentEvents.has(eventId)) return;
+    recentEvents.add(eventId);
+    setTimeout(() => recentEvents.delete(eventId), EVENT_TIMEOUT);
 
     const member = newState.member;
     const currentTime = getMoscowTime();
