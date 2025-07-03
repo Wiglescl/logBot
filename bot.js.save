@@ -1,0 +1,176 @@
+емя МСК: ' + getMoscowTime());
+        });
+
+        app.get('/heartbeat', (req, res) => {
+            lastPingTime = Date.now();
+           isAlive = true;
+            res.send('OK');
+        });
+
+        app.server = app.listen(port, () => {
+            console.log(`Веб-сервер запущен на порту ${port}`);
+            isAlive = true;
+       lastPingTime = Date.now();
+            reconnectAttempts = 0; // Сбрасываем счетчик попыток при успешном запуске
+        });
+
+        // Обработка ошибок веб-сервера
+        app.server.on('error', (error) => {
+            console.error('Ошибка веб-сервера:', error);
+         isAlive = false;
+            
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                console.log(`Попытка переподключения ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+                setTimeout(restartWebServer, RECONNECT_INTERVAL);
+        } else {
+                console.error('Превышено максимальное количество попыток переподключения');
+                process.exit(1); // Завершаем процесс, чтобы система могла его перезапустить
+            }
+        });
+    } catch (error) {
+        console.error('Критическая ошибка веб-сервера:', error);
+    isAlive = false;
+        process.exit(1);
+    }
+}
+
+// Запускаем само-пинг каждую минуту
+setInterval(performSelfPing, 60000);
+нная обработка ошибок Discord клиента
+client.on('error', error => {
+    console.error('Discord client error:', error);
+    if (!client.ws.connection) {
+        console.log('Попытка переподключения к Discord...');
+        client.destroy();
+        setTimeout(() => {
+            client.login(process.env.DISCORD_TOKEN)
+                .catch(err => console.error('Ошибка при переподключении к Discord:', err));
+        }, 5000);
+    }
+});
+
+lient.on('disconnect', () => {
+    console.log('Bot disconnected! Attempting to reconnect...');
+    setTimeout(() => {
+        client.login(process.env.DISCORD_TOKEN)
+            .catch(err => console.error('Ошибка при переподключении к Discord:', err));
+    }, 5000);
+});
+
+// When the client is ready, run this code (only once)
+client.once('ready', () => {
+    console.log(`Бот ${client.user.tag} готов к работе!`);
+    console.log(`Текущее время МСК: ${getMoscowTime()}`);
+});
+// Handle voice state updates
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    const logChannel = client.channels.cache.get(LOG_CHANNEL_ID);
+    if (!logChannel) return;
+
+    const member = newState.member;
+    if (!member) return;
+    // Create a more specific event identifier with a timestamp
+    const eventTimestamp = Date.now();
+    const eventId = `${member.id}-${oldState.channelID || 'none'}-${newState.channelID || 'none'}-${eventTimestamp}`;
+
+    // Check if this event is a duplicate
+    const lastEventTime = recentEvents.get(eventId);
+    if (lastEventTime) {
+(`Duplicate event detected for ${eventId}, skipping...`);
+        return; // Skip duplicates
+    }
+
+    // Store the event with a timestamp
+    recentEvents.set(eventId, eventTimestamp);
+    // Clean up old events after the timeout
+    setTimeout(() => recentEvents.delete(eventId), EVENT_TIMEOUT);
+
+    const currentTime = getMoscowTime();
+    const username = member.user.username; // Используем только username без дискриминатора
+
+    try {
+        // User joined a voice channel
+        if (!oldState.channel && newState.channel) {
+            const embed = {
+                color: 0xFF0000,
+                author: {
+                    name: `${username} зашел в голосовой канал`,
+                    icon_url: member.user.displayAvatarURL()
+               },                description: `Канал: **${newState.channel.name}**`,                fields: [                    .channel.name}**`,
+                       inline: false
+                    }
+                ],
+                footer: {
+                    text: `ID участника: ${member.id} • ${currentTime}`
+              }       };gChannel.send({ embed });                // User left a voice channel        else if (oldState.channel && !newState.channel) {            const embed = {                color: 0x99AAb5,                author: {                   name: `${username} покинул голосовой канал`,                    icon_url: member.user.displayAvatarURL()                                description: `🔴 **${oldState.channel.name}**`               footer: {                    text: `ID участника: ${member.id} • ${currentTime}`
+                }
+            };
+            await logChannel.send({ embed });
+        }
+        // User switched voice channels
+(oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
+            const embed = {
+               color: 0xFF0000,
+                author: {
+                    name: `${username} перешел в другой голосовой канал`,
+                    icon_url: member.user.displayAvatarURL()
+                },
+         fields: [
+                    {
+                        name: 'Предыдущий канал:',
+                        value: `🔴 **${oldState.channel.name}**`,
+                        inline: true
+                    },
+            {
+                        name: 'Новый канал:',
+                        value: `🔴 **${newState.channel.name}**`,
+      inline: true
+                    }
+                ],
+                footer: {
+                   text: `ID участника: ${member.id} • ${currentTime}`
+                }
+           };
+require('dotenv').config();
+const { Client, Intents } = require('discord.js');
+const express = require('express');
+const app = express();
+ = process.env.PORT || 8080;
+
+/ Create a new client instance
+const client = new Client({ 
+    intents: [
+        Intents.FLAGS.GUILDS,
+     Intents.FLAGS.GUILD_MEMBERS,
+        Intents.FLAGS.GUILD_VOICE_STATES
+    ]
+);
+
+// ID of the text channel where logs will be sent
+const LOG_CHANNEL_ID = '1364912337965813850';
+/ Function to get Moscow time
+function getMoscowTime() {
+  
+        'Sunday': 'Воскресенье',
+        'Monday': 'Понедельник',
+        'Tuesday': 'Вторник',
+sday': 'Среда',
+        'Thursday': 'Четверг',
+       'Friday': 'Пятница',
+        'Saturday': 'С
+
+    const date = new Date();
+   const moscowDate = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+    
+   const dayEn = moscowDate.toLocaleString('en-US', { weekday: 'long' });
+= daysRu[day
+    
+    const hou
+
+/ When the client is ready, run this code (only once)
+client.once('ready', () => {
+   console.log(`Бот ${client.user.tag} готов к работе!`);
+    console.log(`Текущее время МСК: ${getMoscowTime()}`);
+// Voice state update handler
+client.on('voiceStateUpdate', async (
